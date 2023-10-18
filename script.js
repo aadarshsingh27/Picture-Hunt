@@ -2,8 +2,8 @@
 const accessKey = "TJGo0aYmhJp9gX9-KchmSG0P0J-6UTpiNSWl_G89bOc";
 
 // DOM elements
-const formE1 = document.querySelector("form");
-const inputE1 = document.getElementById("search-input");
+const searchForm = document.querySelector("form");
+const searchInput = document.getElementById("search-input");
 const searchResults = document.querySelector(".search-results");
 const showMore = document.getElementById("show-more-button");
 const clearButton = document.getElementById("clear-button");
@@ -15,7 +15,7 @@ let page = 1;
 // Function to fetch and display search results
 async function searchImages() {
     // Get user input
-    inputData = inputE1.value;
+    inputData = searchInput.value;
     // Construct the API URL with the user input and access key
     const url = `https://api.unsplash.com/search/photos?page=${page}&query=${inputData}&client_id=${accessKey}`;
 
@@ -109,7 +109,7 @@ async function searchImages() {
 }
 
 // Event listener for the search form submission
-formE1.addEventListener("submit", (event) => {
+searchForm.addEventListener("submit", (event) => {
     event.preventDefault();
     // Reset page number to 1 and perform a new search
     page = 1;
@@ -125,5 +125,5 @@ showMore.addEventListener("click", () => {
 // Event listener for the Clear button click
 clearButton.addEventListener("click", () => {
     // Clear the input field
-    inputE1.value = '';
+    searchInput.value = '';
 });
