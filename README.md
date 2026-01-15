@@ -1,7 +1,5 @@
 # 🖼️ Picture Hunt - Premium Image Experience
 
-![Project Mockup](C:/Users/aadar/.gemini/antigravity/brain/f6ca0751-2c6d-4948-aefd-dadcf106843e/picture_hunt_mockup_1768500394228.png)
-
 **Picture Hunt** is a modern **React-powered** application featuring smooth **GSAP animations** and a premium glassmorphic design. Explore millions of high-quality images with a fluid and highly responsive interface.
 
 ## ✨ Features
