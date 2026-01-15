@@ -1,129 +1,164 @@
-// Your access key for the Unsplash API
-const accessKey = "TJGo0aYmhJp9gX9-KchmSG0P0J-6UTpiNSWl_G89bOc";
+const { useState, useEffect, useRef, useLayoutEffect } = React;
 
-// DOM elements
-const searchForm = document.querySelector("form");
-const searchInput = document.getElementById("search-input");
-const searchResults = document.querySelector(".search-results");
-const showMore = document.getElementById("show-more-button");
-const clearButton = document.getElementById("clear-button");
+const ACCESS_KEY = "TJGo0aYmhJp9gX9-KchmSG0P0J-6UTpiNSWl_G89bOc";
 
-// Variables to store user input and current page
-let inputData = "";
-let page = 1;
+const App = () => {
+    const [query, setQuery] = useState("");
+    const [images, setImages] = useState([]);
+    const [page, setPage] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const gridRef = useRef(null);
+    const headerRef = useRef(null);
 
-// Function to fetch and display search results
-async function searchImages() {
-    // Get user input
-    inputData = searchInput.value;
-    // Construct the API URL with the user input and access key
-    const url = `https://api.unsplash.com/search/photos?page=${page}&query=${inputData}&client_id=${accessKey}`;
+    // Initial entrance animation
+    useLayoutEffect(() => {
+        gsap.from(headerRef.current, {
+            y: -50,
+            opacity: 0,
+            duration: 1,
+            ease: "power3.out"
+        });
+    }, []);
 
-    try {
-        // Fetch images from the API
-        const response = await fetch(url);
-        const data = await response.json();
+    const searchImages = async (newSearch = false) => {
+        if (!query) return;
+        setLoading(true);
+        const currentPage = newSearch ? 1 : page;
+        const url = `https://api.unsplash.com/search/photos?page=${currentPage}&query=${query}&client_id=${ACCESS_KEY}`;
 
-        // Extract image results from the response
-        const results = data.results;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            const results = data.results;
 
-        // Clear the search results if it's the first page
-        if (page === 1) {
-            searchResults.innerHTML = "";
-        }
-
-        // Loop through the image results
-        results.map(async (result) => {
-            // Create a container for each image result
-            const imageWrapper = document.createElement("div");
-            imageWrapper.classList.add("search-result");
-
-            // Create an image element
-            const image = document.createElement("img");
-            image.src = result.urls.small;
-            image.alt = result.alt_description;
-
-            // Create a link to the image source
-            const imageLink = document.createElement("a");
-            imageLink.href = result.links.html;
-            imageLink.target = "_blank";
-            imageLink.textContent = result.alt_description;
-
-            // Append image and link to the container
-            imageWrapper.appendChild(image);
-            imageWrapper.appendChild(imageLink);
-
-            // Create a button to download the image
-            const downloadButton = document.createElement("button");
-            downloadButton.className = "download-button";
-            downloadButton.textContent = "Download";
-
-            try {
-                // Fetch the full-size image for download
-                const response = await fetch(result.urls.full);
-                const blob = await response.blob();
-
-                // Create an object URL for the Blob
-                const blobUrl = window.URL.createObjectURL(blob);
-
-                // Set up the download link
-                downloadButton.addEventListener("click", () => {
-                    const a = document.createElement("a");
-                    a.href = blobUrl;
-                    a.download = `${result.alt_description}.jpg`;
-                    a.style.display = "none";
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(blobUrl);
-                });
-            } catch (downloadError) {
-                console.error("Error downloading image:", downloadError);
+            if (newSearch) {
+                setImages(results);
+                setPage(2);
+            } else {
+                setImages(prev => [...prev, ...results]);
+                setPage(prev => prev + 1);
             }
 
-            // Append download button to the container
-            imageWrapper.appendChild(downloadButton);
+            // Animate new results
+            setTimeout(() => {
+                const newItems = gridRef.current.querySelectorAll('.search-result:nth-last-child(-n+' + results.length + ')');
+                gsap.fromTo(newItems, 
+                    { opacity: 0, y: 30, scale: 0.9 },
+                    { opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.1, ease: "back.out(1.7)" }
+                );
+            }, 100);
 
-            // Create a button to hide the image
-            const hideButton = document.createElement("button");
-            hideButton.className = "hide-button";
-            hideButton.textContent = "Hide";
-            hideButton.addEventListener("click", () => {
-                imageWrapper.style.display = "none";
-            });
-
-            // Append hide button to the container
-            imageWrapper.appendChild(hideButton);
-
-            // Append the container to the search results
-            searchResults.appendChild(imageWrapper);
-        });
-
-        // Increment the page number for pagination
-        page++;
-        if (page > 1) {
-            showMore.style.display = "block";
+        } catch (error) {
+            console.error("Error fetching images:", error);
+        } finally {
+            setLoading(false);
         }
-    } catch (error) {
-        console.error("Error fetching images:", error);
-    }
-}
+    };
 
-// Event listener for the search form submission
-searchForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    // Reset page number to 1 and perform a new search
-    page = 1;
-    searchImages();
-});
+    const handleSearch = (e) => {
+        e.preventDefault();
+        searchImages(true);
+    };
 
-// Event listener for the Show more button click
-showMore.addEventListener("click", () => {
-    // Perform a new search when the "Show More" button is clicked
-    searchImages();
-});
+    const handleClear = () => {
+        setQuery("");
+        setImages([]);
+        setPage(1);
+    };
 
-// Event listener for the Clear button click
-clearButton.addEventListener("click", () => {
-    // Clear the input field
-    searchInput.value = '';
-});
+    const hideImage = (id) => {
+        const element = document.getElementById(id);
+        gsap.to(element, {
+            scale: 0,
+            opacity: 0,
+            duration: 0.4,
+            ease: "power2.in",
+            onComplete: () => {
+                setImages(prev => prev.filter(img => img.id !== id));
+            }
+        });
+    };
+
+    return (
+        <div className="container">
+            <header ref={headerRef}>
+                <h1 className="title">✨ Picture Hunt</h1>
+                <form onSubmit={handleSearch} className="search-form">
+                    <div className="input-wrapper">
+                        <input 
+                            type="text" 
+                            id="search-input" 
+                            placeholder="Explore the magic..."
+                            value={query}
+                            onChange={(e) => setQuery(e.target.value)}
+                        />
+                        <div className="buttons">
+                            <button type="submit" id="search-button">Search</button>
+                            <button type="button" id="clear-button" onClick={handleClear}>Clear</button>
+                        </div>
+                    </div>
+                </form>
+            </header>
+
+            <main className="search-results" ref={gridRef}>
+                {images.map((img) => (
+                    <ImageCard 
+                        key={img.id + Math.random()} 
+                        img={img} 
+                        onHide={() => hideImage(img.id)} 
+                    />
+                ))}
+            </main>
+
+            {images.length > 0 && (
+                <button 
+                    id="show-more-button" 
+                    onClick={() => searchImages()}
+                    disabled={loading}
+                    style={{ display: 'block' }}
+                >
+                    {loading ? "Loading..." : "Show More"}
+                </button>
+            )}
+        </div>
+    );
+};
+
+const ImageCard = ({ img, onHide }) => {
+    const cardRef = useRef(null);
+
+    const downloadImage = async () => {
+        try {
+            const response = await fetch(img.urls.full);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${img.alt_description || 'image'}.jpg`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error("Download failed:", error);
+        }
+    };
+
+    return (
+        <div className="search-result" id={img.id} ref={cardRef}>
+            <div className="image-container">
+                <img src={img.urls.small} alt={img.alt_description} />
+                <div className="overlay">
+                    <button className="download-button" onClick={downloadImage}>Download</button>
+                    <button className="hide-button" onClick={onHide}>Hide</button>
+                </div>
+            </div>
+            <a href={img.links.html} target="_blank" className="img-title">
+                {img.alt_description || "Untitled Artwork"}
+            </a>
+        </div>
+    );
+};
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);

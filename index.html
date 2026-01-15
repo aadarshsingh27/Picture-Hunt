@@ -1,50 +1,192 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Search App</title>
+    <title>Picture Hunt | Premium Image Search</title>
     <link rel="stylesheet" href="style.css">
+    <!-- React & ReactDOM CDN -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- GSAP for Animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useLayoutEffect } = React;
 
-    <h1>Image Search App</h1>
-    <form action="">
-        <input type="text" id="search-input" placeholder="Search for images">
-        <button id="search-button">Search</button>
-        <button id="clear-button">Clear</button>
-    </form>
+        const ACCESS_KEY = "TJGo0aYmhJp9gX9-KchmSG0P0J-6UTpiNSWl_G89bOc";
 
+        const App = () => {
+            const [query, setQuery] = useState("");
+            const [images, setImages] = useState([]);
+            const [page, setPage] = useState(1);
+            const [loading, setLoading] = useState(false);
+            const gridRef = useRef(null);
+            const headerRef = useRef(null);
 
-    <div class="search-results">
-        <div class="search-result">
-            <img src=https://images.unsplash.com/photo-1682687981630-cefe9cd73072?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80" alt="Oceanic Wonderland">
-            <a href="https://unsplash.com/photos/jTxhUMyPTrE" target="_blank">Oceanic Wonderland</a>
-            <a href="https://images.unsplash.com/photo-1682687981630-cefe9cd73072?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80" download></a>
-            <button class="download-button" style="display: none;">Download</button>
-            <button class="hide-button" style="display: none;">Hide</button>
-        </div>
-        <div class="search-result">
-            <img src=https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" alt="Night Sky">
-            <a href="https://unsplash.com/photos/oMpAz-DN-9I" target="_blank">Night Sky</a>
-            <a href="https://images.unsplash.com/photo-1444703686981-a3abbc4d4fe3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80" download></a>
-            <button class="download-button" style="display: none;">Download</button>
-            <button class="hide-button" style="display: none;">Hide</button>
-        </div>
-        <div class="search-result">
-            <img src=https://images.unsplash.com/photo-1682687220247-9f786e34d472?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1965&q=80" alt="Wild Life">
-            <a href="https://unsplash.com/photos/CzwL_vn445k" target="_blank">Wild Life</a>
-            <a href="https://images.unsplash.com/photo-1682687220247-9f786e34d472?ixlib=rb-4.0.3&ixid=M3wxMjA3fDF8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1965&q=80" download></a>
-            <button class="download-button" style="display: none;">Download</button>
-            <button class="hide-button" style="display: none;">Hide</button>
-        </div>
-    </div>
+            useLayoutEffect(() => {
+                gsap.from(headerRef.current, {
+                    y: -50,
+                    opacity: 0,
+                    duration: 1,
+                    ease: "power3.out"
+                });
+            }, []);
 
-    <button id="show-more-button">Show more</button>
-    
+            const searchImages = async (newSearch = false) => {
+                if (!query) return;
+                setLoading(true);
+                const currentPage = newSearch ? 1 : page;
+                const url = `https://api.unsplash.com/search/photos?page=${currentPage}&query=${query}&client_id=${ACCESS_KEY}`;
 
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    const results = data.results;
 
-    <script src="script.js"></script>
+                    if (newSearch) {
+                        setImages(results);
+                        setPage(2);
+                    } else {
+                        setImages(prev => [...prev, ...results]);
+                        setPage(prev => prev + 1);
+                    }
 
+                    setTimeout(() => {
+                        const newItems = gridRef.current.querySelectorAll('.search-result:nth-last-child(-n+' + results.length + ')');
+                        gsap.fromTo(newItems,
+                            { opacity: 0, y: 30, scale: 0.9 },
+                            { opacity: 1, y: 0, scale: 1, duration: 0.6, stagger: 0.1, ease: "back.out(1.7)" }
+                        );
+                    }, 100);
+
+                } catch (error) {
+                    console.error("Error fetching images:", error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleSearch = (e) => {
+                e.preventDefault();
+                searchImages(true);
+            };
+
+            const handleClear = () => {
+                setQuery("");
+                setImages([]);
+                setPage(1);
+            };
+
+            const hideImage = (id) => {
+                const element = document.getElementById(id);
+                gsap.to(element, {
+                    scale: 0,
+                    opacity: 0,
+                    duration: 0.4,
+                    ease: "power2.in",
+                    onComplete: () => {
+                        setImages(prev => prev.filter(img => img.id !== id));
+                    }
+                });
+            };
+
+            return (
+                <div className="container">
+                    <header ref={headerRef}>
+                        <h1 className="title">✨ Picture Hunt</h1>
+                        <form onSubmit={handleSearch} className="search-form">
+                            <div className={`input-wrapper ${query ? 'has-text' : ''}`}>
+                                <svg className="search-icon-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8"></circle>
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                </svg>
+                                <input
+                                    type="text"
+                                    id="search-input"
+                                    placeholder="Explore the magic..."
+                                    value={query}
+                                    onChange={(e) => setQuery(e.target.value)}
+                                />
+                                <div className="buttons">
+                                    <button type="submit" id="search-button">Search</button>
+                                    <button type="button" id="clear-button" onClick={handleClear}>Clear</button>
+                                </div>
+                            </div>
+                        </form>
+                    </header>
+
+                    <main className="search-results" ref={gridRef}>
+                        {images.map((img) => (
+                            <ImageCard
+                                key={img.id + Math.random()}
+                                img={img}
+                                onHide={() => hideImage(img.id)}
+                            />
+                        ))}
+                    </main>
+
+                    {images.length > 0 && (
+                        <button
+                            id="show-more-button"
+                            onClick={() => searchImages()}
+                            disabled={loading}
+                            style={{ display: 'block' }}
+                        >
+                            {loading ? "Loading..." : "Show More"}
+                        </button>
+                    )}
+                </div>
+            );
+        };
+
+        const ImageCard = ({ img, onHide }) => {
+            const cardRef = useRef(null);
+
+            const downloadImage = async () => {
+                try {
+                    const response = await fetch(img.urls.full);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = `${img.alt_description || 'image'}.jpg`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                } catch (error) {
+                    console.error("Download failed:", error);
+                }
+            };
+
+            return (
+                <div className="search-result" id={img.id} ref={cardRef}>
+                    <div className="image-container">
+                        <img src={img.urls.small} alt={img.alt_description} />
+                        <div className="overlay">
+                            <button className="download-button" onClick={downloadImage}>Download</button>
+                            <button className="hide-button" onClick={onHide}>Hide</button>
+                        </div>
+                    </div>
+                    <a href={img.links.html} target="_blank" className="img-title">
+                        {img.alt_description || "Untitled Artwork"}
+                    </a>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
 </body>
+
 </html>
